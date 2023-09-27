@@ -13,7 +13,6 @@ gc() #free up memory and report the memory usage.
 library(here)
 library(tidyverse)
 library(readxl)
-library(writexl)
 library(openxlsx)
 
 
@@ -26,7 +25,7 @@ library(openxlsx)
 
 #                                                                           I. FILE LOAD
 
-crest_biodata_in <- read_excel(path = paste0("//dcbcpbsna01a.ENT.dfo-mpo.ca/SCD_Stad/test_QC_Reports/1-data-input/",
+crest_biodata_in <- readxl::read_excel(path = paste0("//dcbcpbsna01a.ENT.dfo-mpo.ca/SCD_Stad/test_QC_Reports/1-data-input/",
                                              # <<<< user entry: YOU NEED TO WRITE YOUR OWN FILENAME HERE IN QUOTATION MARKS: 
                                              "2023 ALL AREAS Biological_Data_With_Results (Wednesday, September 27, 2023 11 30 AM).xlsx"
                                              ), 
