@@ -2,7 +2,7 @@
 # QC any CREST biodata w results output, assuming columns are consistent which they should be
 # Sept 2023
 
-# there are TWO PLACES users need to enter information, input and output file names. CTRL+F "user entry" to find those places. 
+# there are a few places users need to enter information, input and output file names. CTRL+F "user entry" to find those places. 
 
 
 # Set up ----------------
