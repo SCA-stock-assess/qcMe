@@ -7,3 +7,7 @@ Folder structure:
 Still to come:
 - qcESC
 - qcEPRO
+
+
+Maintainer:
+Katie Davidson
