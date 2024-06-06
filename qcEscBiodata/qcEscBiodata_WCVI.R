@@ -21,9 +21,7 @@ esc.biodat.raw <- readxl::read_excel(path=list.files(path = "//dcbcpbsna01a.ENT.
   #select(Year, `Sample Month`:Species, `Fishery / River`:Gear, Sex, `POF Length (mm)`:`Egg Retention`, Comments) %>%
   mutate(`(R) OTOLITH LBV CONCAT` = case_when(!is.na(`Otolith Lab Number`) & !is.na(`Otolith Box #`) & !is.na(`Otolith Specimen #`) ~ 
                                                 paste0(`Otolith Lab Number`, sep="-",`Otolith Box #`, sep="-",`Otolith Specimen #`)),
-         `(R) SCALE BOOK-CELL CONCAT` = case_when(!is.na(`Scale Book #`) & !is.na(`Scale #`) ~ paste0(`Scale Book #`,sep="-",`Scale #`)),
-         `Fishery / River` = case_when(`Fishery / River`=="Moheya River" ~ "Moyeha River",
-                                       TRUE ~ `Fishery / River`)) %>% 
+         `(R) SCALE BOOK-CELL CONCAT` = case_when(!is.na(`Scale Book #`) & !is.na(`Scale #`) ~ paste0(`Scale Book #`,sep="-",`Scale #`))) %>% 
   print()
 
 
@@ -160,24 +158,46 @@ qc_length_flag <- esc.biodat.raw %>%
 
 
 
+# INCONSISTENT SPATIAL DATA ---------------------------
+# Sub-area isn't proper format (##-#), there are multiple sub-areas, or no sub area
+# (are there details in "Capture Location/River Segment" that can inform?)
+qc_subarea_flag <- esc.biodat.raw %>%
+  filter(!grepl("-", `Sub-area`) | grepl(",", `Sub-area`) | is.na(`Sub-area`)) %>% 
+  print()
 
 
+# More than 1 stat area given
+qc_area_flag <- esc.biodat.raw %>%
+  filter(nchar(`Stat Area`)>3) %>% 
+  print()
+
+# Typos in river names (manual, not actually QC)
+qc_river_typo <- esc.biodat.raw %>% 
+  group_by(`Fishery / River`) %>% 
+  summarize(n=n()) %>% 
+  print()
 
 
+# INCONSISTENT METHODS/SOURCE ---------------------------
+# Gear inconsistencies
+qc_gear_typo <- esc.biodat.raw %>% 
+  group_by(Gear) %>% 
+  summarize(n=n()) %>% 
+  print()
 
 
+# INCONSISTENT TEMPORAL DATA ---------------------------
+# End date is before start date
+qc_date_flags <- esc.biodat.raw %>% 
+  filter(`Sample End Date (DD/MM/YYYY)` < `Sample Start Date (DD/MM/YYYY)`) %>% 
+  print()
 
 
-
-
-
-
-
-
-
-
-
-
+# "Month" is empty or doesn't align with start and/or end dates
+qc_month_flags <- esc.biodat.raw %>% 
+  filter(lubridate::month(`Sample Start Date (DD/MM/YYYY)`, label=T, abbr=F) != `Sample Month` | 
+           lubridate::month(`Sample End Date (DD/MM/YYYY)`, label=T, abbr=F) != `Sample Month` ) %>% 
+  print()
 
 
 
