@@ -78,8 +78,9 @@ qc_nonstd_scale_cell <- esc.biodat.raw %>%
 
 
 
-# UNIQUE OTO LAB-BOX-VIAL ---------------------------
-qc_dupl_oto_LBV_entries <- esc.biodat.raw %>% 
+# OTOLITH FLAGS ---------------------------
+# Unique otolith lab-box-vial combination number                                                                        *****requires Seren sleuthing
+qc_dupl_oto_LBV <- esc.biodat.raw %>% 
   filter(`(R) OTOLITH LBV CONCAT` %in% as.character(esc.biodat.raw %>% 
                                                       filter(!is.na(`(R) OTOLITH LBV CONCAT`)) %>% 
                                                       group_by(`(R) OTOLITH LBV CONCAT`) %>% 
@@ -89,15 +90,72 @@ qc_dupl_oto_LBV_entries <- esc.biodat.raw %>%
   print()
 
 
+# Non-standard oto box                                                                                                  *****requires Seren sleuthing/our decision making
+qc_nonstd_oto_box <- esc.biodat.raw %>% 
+  filter(str_detect(esc.biodat.raw$`Otolith Box #`, "^[:digit:]+$")=="FALSE") %>% 
+  print()
 
-# UNIQUE WHATMANS ---------------------------
-dupl_whatman_entries <- esc.biodat.raw %>% 
-  filter(`(R) OTOLITH LBV CONCAT` %in% as.character(esc.biodat.raw %>% 
-                                                      filter(!is.na(`(R) OTOLITH LBV CONCAT`)) %>% 
-                                                      group_by(`(R) OTOLITH LBV CONCAT`) %>% 
-                                                      summarize(n=n()) %>% 
-                                                      filter(n>1) %>%
-                                                      pull(`(R) OTOLITH LBV CONCAT`))) %>% 
+
+# Non-standard oto vial                                                                                                 *****requires Seren sleuthing/our decision making
+qc_nonstd_oto_vial <- esc.biodat.raw %>% 
+  filter(nchar(`Otolith Specimen #`)>3 | grepl("[^A-Za-z0-9]", `Otolith Specimen #`)) %>% 
+  print()
+
+
+
+# WHATMAN FLAGS ---------------------------
+# Two samples collected per fish - what are we trying to link results to/why collected? 
+qc_multi_whatman_entries <- esc.biodat.raw %>% 
+  filter(!is.na(`Specimen Reference DNA #...43`) & !is.na(`Specimen Reference DNA #...46`)) %>% 
+  print()
+
+
+# Duplicate DNA #s (both columns)
+qc_dupl_whatman_entries <- rbind(
+  esc.biodat.raw %>% 
+    filter(`Specimen Reference DNA #...43` %in% as.character(esc.biodat.raw %>% 
+                                                               filter(!is.na(`Specimen Reference DNA #...43`)) %>% 
+                                                               group_by(`Specimen Reference DNA #...43`) %>% 
+                                                               summarize(n=n()) %>% 
+                                                               filter(n>1) %>%
+                                                               pull(`Specimen Reference DNA #...43`))),
+  esc.biodat.raw %>% 
+    filter(`Specimen Reference DNA #...46` %in% as.character(esc.biodat.raw %>% 
+                                                               filter(!is.na(`Specimen Reference DNA #...46`)) %>% 
+                                                               group_by(`Specimen Reference DNA #...46`) %>% 
+                                                               summarize(n=n()) %>% 
+                                                               filter(n>1) %>%
+                                                               pull(`Specimen Reference DNA #...46`)))
+)%>% 
+  print()
+
+
+
+# SEX FLAGS ---------------------------
+# Inconsistent male/female/jack                                                                                             *****requires Seren changing             
+qc_sex_flag <- esc.biodat.raw %>% 
+  filter(!is.na(Sex)) %>% 
+  group_by(Sex) %>% 
+  summarize(n=n()) %>% 
+  print()
+
+
+# Sex listed in two columns: Sex and Life-stage (visual)                                                                    *****requires Seren changing
+qc_sex_flag <- esc.biodat.raw %>% 
+  filter(!is.na(Sex) & !is.na(`Life-stage (visual)`)) %>% 
+  print()
+
+
+# LENGTH FLAGS ---------------------------
+# Illogical lengths (e.g., POH>NF) where one fish has >1 length  measurement                                                *****requires Seren sleuthing
+qc_length_flag <- esc.biodat.raw %>% 
+  filter(!is.na(`POF Length (mm)`) | !is.na(`POH Length (mm)`) | !is.na(`TOTAL Length`) | !is.na(`Fork Length (mm)`) | !is.na(`Standard Length (mm)`)) %>%
+  filter((`POH Length (mm)` > `Fork Length (mm)`) |
+           (`POH Length (mm)` > `Standard Length (mm)`) | 
+           (`Fork Length (mm)` > `Standard Length (mm)`) |
+           (`POF Length (mm)` > `Fork Length (mm)`) |
+           (`POF Length (mm)` > `Standard Length (mm)`) |
+           (`POH Length (mm)` > `Standard Length (mm)`)) %>%
   print()
 
 
@@ -109,13 +167,44 @@ dupl_whatman_entries <- esc.biodat.raw %>%
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+################################################################################################################################################
 
 
 
 
 
 # QC Summary ---------------------------
-qc_summary <- data.frame(qc_flagName = c("qc0 - EBwR unCert Oto",
+qc_summary_tab <- data.frame(qc_flagName = c("qc0 - EBwR unCert Oto",
                                          "qc_noOtoID",
                                          "qc_noResults",
                                          "qc_noCWTID",
@@ -146,7 +235,7 @@ qc_summary <- data.frame(qc_flagName = c("qc0 - EBwR unCert Oto",
 
 
 # ======================== Create readme ========================
-readme <- data.frame(`1` = c("date rendered:", 
+readme_tab <- data.frame(`1` = c("date rendered:", 
                              "source R code:", 
                              "source escapement file:",
                              "source PADS file:",
@@ -181,6 +270,58 @@ readme <- data.frame(`1` = c("date rendered:",
         "QC flag tabs. See QC summary report for details.",
         "PADS Antijoin tab. See QC summary for details.",
         "OtoManager Antijoin tab. See QC summary for details."))
+
+
+
+################################################################################################################################################
+
+
+
+#                                                                           X. EXPORT 
+
+
+# ==================== Create the Excel file ====================
+# Create workbook --------------------
+R_OUT_ESC.RES <- openxlsx::createWorkbook()
+
+# Add sheets to the workbook --------------------
+openxlsx::addWorksheet(R_OUT_ESC.RES, "readme")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "Esc biodata w RESULTS")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "Esc biodat w RES - PBT parents")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "QC summary")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "qc0 - EBwR unCert Oto")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "!NPAFC_dupl!")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- No Oto stock ID")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- No Oto result")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- No CWT ID")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- No Reslvd ID")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- Unreslvd ID")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- Unreslvd age")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "antijoin - PADS unmatched")
+openxlsx::addWorksheet(R_OUT_ESC.RES, "antijoin - OM unmatched")
+
+# Write data to the sheets --------------------
+openxlsx::writeData(R_OUT_ESC.RES, sheet="readme", x=readme)
+openxlsx::writeData(R_OUT_ESC.RES, sheet="Esc biodata w RESULTS", x=esc_biodata_w_RESULTS)
+openxlsx::writeData(R_OUT_ESC.RES, sheet="Esc biodat w RES - PBT parents", x=PBT_parents)
+openxlsx::writeData(R_OUT_ESC.RES, sheet="QC summary", x=qc_summary)
+openxlsx::writeData(R_OUT_ESC.RES, sheet="qc0 - EBwR unCert Oto", x=qc_EBwR_uncertOtoID)
+openxlsx::writeData(R_OUT_ESC.RES, sheet="!NPAFC_dupl!", x=NPAFC_dupl.df)
+openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- No Oto stock ID", x=qc_noOtoID)
+openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- No Oto result", x=qc_noOtoResults)
+openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- No CWT ID", x=qc_noCWTID)
+openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- No Reslvd ID", x=qc_noRslvdID)
+openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- Unreslvd ID", x=qc_unRslvdID)
+openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- Unreslvd age", x=qc_unRslvdAge)
+openxlsx::writeData(R_OUT_ESC.RES, sheet = "antijoin - PADS unmatched", x=antijoin_PADS)
+openxlsx::writeData(R_OUT_ESC.RES, sheet = "antijoin - OM unmatched", x=antijoin_OM)
+
+
+
+
+
+
+
 
 
 
