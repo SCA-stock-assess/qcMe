@@ -223,26 +223,30 @@ qc_month_flags <- esc.biodat.raw %>%
 
 
 
+
+
 # QC Summary ---------------------------
-qc_summary_tab <- data.frame(qc_flagName = c("qc0 - EBwR unCert Oto",
-                                         "qc_noOtoID",
-                                         "qc_noResults",
-                                         "qc_noCWTID",
-                                         "qc_noRslvdID",
-                                         "qc_unRslvdID",
-                                         "qc_unRslvdAge",
-                                         "antijoin - PADS",
-                                         "antijoin - Otos"),
-                         number_records = c(nrow(qc_EBwR_uncertOtoID),
-                                            nrow(qc_noOtoID),
-                                            nrow(qc_noOtoResults),
-                                            nrow(qc_noCWTID),
-                                            nrow(qc_noRslvdID),
-                                            nrow(qc_unRslvdID),
-                                            nrow(qc_unRslvdAge),
-                                            nrow(antijoin_PADS),
-                                            nrow(antijoin_OM)),
-                         description = c("Esc biodata entries where there was no CWT and duplicate otolith hatch codes were applied within one Brood Year resulting in >1 stock ID options, OR where unable to resolve to Stock level and are left making assumptions based on Facility. These records are still retained in the full biodata file as well, and assumptions are made based on likelihood or facility. These are indicated in the (R) OTOLITH ID METHOD column.",
+# Create a list of the QC dataframes (exclude anything that doesn't start with "qc")
+list_flags <- Filter(function(x) is(x, "data.frame"), mget(ls())) 
+list_flags <- list_flags[grep("qc", names(list_flags))]  
+
+
+# Create as a dataframe
+flag_df <- data.frame(qc_flag = names(list_flags))
+
+# Calculate # rows per QC flag dataframe 
+for(i in 1:length(list_flags)){
+  flag_df$nrow[i] <- nrow(list_flags[[i]])
+}
+
+
+# Export mapping file - may not have to re-do unless more QC flags are added
+writexl::write_xlsx(flag_df, path=here("outputs"))
+
+
+# Add readme
+flag_df <- flag_df %>%
+  mutate(description = c("Esc biodata entries where there was no CWT and duplicate otolith hatch codes were applied within one Brood Year resulting in >1 stock ID options, OR where unable to resolve to Stock level and are left making assumptions based on Facility. These records are still retained in the full biodata file as well, and assumptions are made based on likelihood or facility. These are indicated in the (R) OTOLITH ID METHOD column.",
                                          "Otolith hatch code and BY are given but there is no corresponding stock ID in the NPAFC file. Likely due to an error with mark reading.",
                                          "Otolith sample taken and BY available, but no hatchcode (results not processed yet?).",
                                          "There is a CWT available but no Stock ID.",
