@@ -246,13 +246,32 @@ for(i in 1:length(flags_list)){
   #                                          ".xlsx"))
   # 
 
-
+# Re-import definitions mapping file once manually updated
+flags_df <- readxl::read_excel(path=paste0(here::here("outputs", 
+                                                      list.files(path=here::here("outputs"), pattern="Esc biodata qc flag definitions mapping")))) %>%
+  rename(`X1` = qc_flag,
+         `X2` = nrow,
+         `X3` = `...3`)
 
 
 
 # ======================== Create readme ========================
-readme_tab <- data.frame(`1` = c( ),
-`2` = c( ))
+readme_tab <- rbind(data.frame(`1` = c("last update:", 
+                                       "source R code:", 
+                                       "source escapement Excel file:",
+                                       "",
+                                       "TAB NAME"),
+                               `2` = c(as.character(Sys.Date()), 
+                                       "https://github.com/SCA-stock-assess/qcMe/blob/main/scripts/qcEscBiodata/qcEscBiodata_WCVI.R", 
+                                       "//dcbcpbsna01a.ENT.dfo-mpo.ca/SCD_Stad/SC_BioData_Management/2-Escapement/[yyyy-yyyy]_WCVI_Escapement-FSC_BioData.xlsx",
+                                       "",
+                                       "ROWS"),
+                               `3` = c(rep("", 4),
+                                       "TAB DESCRIPTION")),
+                    data.frame(`1` = "AllEscBiodata",
+                               `2` = nrow(esc.biodat.raw),
+                               `3` = "Raw escapement biodata file loaded from network drive. All years available."),
+                    flags_df)
 
 
 
