@@ -220,33 +220,36 @@ qc_month_flags <- esc.biodat.raw %>%
 ################################################################################################################################################
 
 
+#                                                                  QC SUMMARY AND README
 
+# ======================== QC SUMMARY ========================
 
-
-
-
-# QC Summary ---------------------------
-# Create a list of the QC dataframes (exclude anything that doesn't start with "qc")
+# QC Summary
+# Create a list of the QC dataframes --------------------------- 
 flags_list <- Filter(function(x) is(x, "data.frame"), mget(ls())) 
+#(exclude anything that doesn't start with "qc"):
 flags_list <- flags_list[grep("qc", names(flags_list))]  
 
 
-# Create as a dataframe
+# Format to dataframe --------------------------- 
 flags_df <- data.frame(qc_flag = names(flags_list))
 
-# Calculate # rows per QC flag dataframe 
+
+# Calculate # rows per QC flag dataframe --------------------------- 
 for(i in 1:length(flags_list)){
   flag_df$nrow[i] <- nrow(flags_list[[i]])
 }
 
 
-# Export definitions mapping file and manually update - may not have to re-do unless more QC flags are added
+# Export definitions mapping file --------------------------- 
+# Requires manual update - may not have to re-do unless more QC flags are added
   # writexl::write_xlsx(flag_df, path=paste0(here::here("outputs", "Esc biodata qc flag definitions mapping "),
   #                                          Sys.Date(),
   #                                          ".xlsx"))
   # 
 
-# Re-import definitions mapping file once manually updated
+
+# Re-import definitions mapping file once manually updated --------------------------- 
 flags_df <- readxl::read_excel(path=paste0(here::here("outputs", 
                                                       list.files(path=here::here("outputs"), pattern="Esc biodata qc flag definitions mapping")))) %>%
   rename(`X1` = qc_flag,
@@ -259,16 +262,16 @@ flags_df <- readxl::read_excel(path=paste0(here::here("outputs",
 readme_tab <- rbind(data.frame(`1` = c("last update:", 
                                        "source R code:", 
                                        "source escapement Excel file:",
-                                       "",
+                                       NA,
                                        "TAB NAME"),
                                `2` = c(as.character(Sys.Date()), 
                                        "https://github.com/SCA-stock-assess/qcMe/blob/main/scripts/qcEscBiodata/qcEscBiodata_WCVI.R", 
                                        "//dcbcpbsna01a.ENT.dfo-mpo.ca/SCD_Stad/SC_BioData_Management/2-Escapement/[yyyy-yyyy]_WCVI_Escapement-FSC_BioData.xlsx",
-                                       "",
+                                       NA,
                                        "ROWS"),
-                               `3` = c(rep("", 4),
+                               `3` = c(rep(NA, 4),
                                        "TAB DESCRIPTION")),
-                    data.frame(`1` = "AllEscBiodata",
+                    data.frame(`1` = "esc.biodat.raw",
                                `2` = nrow(esc.biodat.raw),
                                `3` = "Raw escapement biodata file loaded from network drive. All years available."),
                     flags_df)
@@ -277,71 +280,19 @@ readme_tab <- rbind(data.frame(`1` = c("last update:",
 
 ################################################################################################################################################
 
-
-
 #                                                                           X. EXPORT 
 
 
 
-require(openxlsx)
-list_of_datasets <- list("Name of DataSheet1" = dataframe1, "Name of Datasheet2" = dataframe2)
-write.xlsx(list_of_datasets, file = "writeXLSX2.xlsx")
+# Create final list of dataframes to write to Excel --------------------------- 
+write_lists <- c(Filter(function(x) is(x, "data.frame"), mget(grep("readme", ls(),value=T))),
+                 Filter(function(x) is(x, "data.frame"), mget(grep("esc|qc", ls(),value=T))))
 
 
-library(writexl)
-sheets <- list("sheet1Name" = sheet1, "sheet2Name" = sheet2) #assume sheet1 and sheet2 are data frames
-write_xlsx(sheets, "path/to/location")
-
-
-
-
-library(openxlsx) # loads library and doesn't require Java installed
-
-your_df_list <- c("df1", "df2", ..., "dfn")
-
-for(name in your_df_list){
-  write.xlsx(x = get(name), 
-             file = "your_spreadsheet_name.xlsx", 
-             sheetName = name)
-}
-
-
-
-# ==================== Create the Excel file ====================
-# Create workbook --------------------
-R_OUT_ESC.RES <- openxlsx::createWorkbook()
-
-# Add sheets to the workbook --------------------
-openxlsx::addWorksheet(R_OUT_ESC.RES, "readme")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "Esc biodata w RESULTS")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "Esc biodat w RES - PBT parents")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "QC summary")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "qc0 - EBwR unCert Oto")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "!NPAFC_dupl!")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- No Oto stock ID")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- No Oto result")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- No CWT ID")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- No Reslvd ID")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- Unreslvd ID")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "QC- Unreslvd age")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "antijoin - PADS unmatched")
-openxlsx::addWorksheet(R_OUT_ESC.RES, "antijoin - OM unmatched")
-
-# Write data to the sheets --------------------
-openxlsx::writeData(R_OUT_ESC.RES, sheet="readme", x=readme)
-openxlsx::writeData(R_OUT_ESC.RES, sheet="Esc biodata w RESULTS", x=esc_biodata_w_RESULTS)
-openxlsx::writeData(R_OUT_ESC.RES, sheet="Esc biodat w RES - PBT parents", x=PBT_parents)
-openxlsx::writeData(R_OUT_ESC.RES, sheet="QC summary", x=qc_summary)
-openxlsx::writeData(R_OUT_ESC.RES, sheet="qc0 - EBwR unCert Oto", x=qc_EBwR_uncertOtoID)
-openxlsx::writeData(R_OUT_ESC.RES, sheet="!NPAFC_dupl!", x=NPAFC_dupl.df)
-openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- No Oto stock ID", x=qc_noOtoID)
-openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- No Oto result", x=qc_noOtoResults)
-openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- No CWT ID", x=qc_noCWTID)
-openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- No Reslvd ID", x=qc_noRslvdID)
-openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- Unreslvd ID", x=qc_unRslvdID)
-openxlsx::writeData(R_OUT_ESC.RES, sheet = "QC- Unreslvd age", x=qc_unRslvdAge)
-openxlsx::writeData(R_OUT_ESC.RES, sheet = "antijoin - PADS unmatched", x=antijoin_PADS)
-openxlsx::writeData(R_OUT_ESC.RES, sheet = "antijoin - OM unmatched", x=antijoin_OM)
+# Write Excel file to github repo --------------------------- 
+openxlsx::write.xlsx(x = write_lists, 
+                     file = paste0(here::here("outputs"), "/Escapement biodata with QC Report ", Sys.Date(), ".xlsx"),
+                     overwrite = T)
 
 
 
