@@ -227,73 +227,32 @@ qc_month_flags <- esc.biodat.raw %>%
 
 # QC Summary ---------------------------
 # Create a list of the QC dataframes (exclude anything that doesn't start with "qc")
-list_flags <- Filter(function(x) is(x, "data.frame"), mget(ls())) 
-list_flags <- list_flags[grep("qc", names(list_flags))]  
+flags_list <- Filter(function(x) is(x, "data.frame"), mget(ls())) 
+flags_list <- flags_list[grep("qc", names(flags_list))]  
 
 
 # Create as a dataframe
-flag_df <- data.frame(qc_flag = names(list_flags))
+flags_df <- data.frame(qc_flag = names(flags_list))
 
 # Calculate # rows per QC flag dataframe 
-for(i in 1:length(list_flags)){
-  flag_df$nrow[i] <- nrow(list_flags[[i]])
+for(i in 1:length(flags_list)){
+  flag_df$nrow[i] <- nrow(flags_list[[i]])
 }
 
 
-# Export mapping file - may not have to re-do unless more QC flags are added
-writexl::write_xlsx(flag_df, path=here("outputs"))
+# Export definitions mapping file and manually update - may not have to re-do unless more QC flags are added
+  # writexl::write_xlsx(flag_df, path=paste0(here::here("outputs", "Esc biodata qc flag definitions mapping "),
+  #                                          Sys.Date(),
+  #                                          ".xlsx"))
+  # 
 
 
-# Add readme
-flag_df <- flag_df %>%
-  mutate(description = c("Esc biodata entries where there was no CWT and duplicate otolith hatch codes were applied within one Brood Year resulting in >1 stock ID options, OR where unable to resolve to Stock level and are left making assumptions based on Facility. These records are still retained in the full biodata file as well, and assumptions are made based on likelihood or facility. These are indicated in the (R) OTOLITH ID METHOD column.",
-                                         "Otolith hatch code and BY are given but there is no corresponding stock ID in the NPAFC file. Likely due to an error with mark reading.",
-                                         "Otolith sample taken and BY available, but no hatchcode (results not processed yet?).",
-                                         "There is a CWT available but no Stock ID.",
-                                         "There is a CWT or an NPAFC ID but no Resolved stock ID.",
-                                         "Otolith, CWT and/or PBT stock ID(s) do not match.",
-                                         "Scale, CWT and/or PBT age(s) do not match.",
-                                         "All WCVI CN PADS results that did not match to a sample in the Escapement Biodata file. Note they may go elsewhere though, e.g., Barkely Sound Test Fishery likely in FOS. ASSUMPTION: Removed 'WCVI Creel Survey' assumed already in CREST. Purpose here is to make sure there are no missing scales expected (i.e., samples not entered in base esc biodata file).",
-                                         "All WCVI otolith results that did not match to a sample in the Escapement Biodata file. Note they may go elsewhere though, e.g., Barkely Sound Test Fishery likely in FOS. ASSUMPTION: Removed 'Sport' assumed already in CREST. Purpose here is to make sure there are no missing otoliths expected (i.e., samples not entered in base esc biodata file).")) %>% 
-  print()
+
 
 
 # ======================== Create readme ========================
-readme_tab <- data.frame(`1` = c("date rendered:", 
-                             "source R code:", 
-                             "source escapement file:",
-                             "source PADS file:",
-                             "source Oto Manager file:",
-                             "source NPAFC file:",
-                             "!PLACEHOLDER! CWT source:",
-                             "",
-                             "sheet name:",
-                             "Esc biodata w RESULTS",
-                             "PBT parent biodata w RESULTS",
-                             "QC Report",
-                             "qc0 - EBwR unCert Oto",
-                             "!NPAFC_dupl!",
-                             "QC...",
-                             "antijoin - PADS unmatched",
-                             "antijoin - OM unmatched"
-),
-`2` = c(as.character(Sys.Date()), 
-        "https://github.com/SCA-stock-assess/WCVI_CN_TermRunRecon/blob/main/scripts/joins/1-esc_biodata_with_results.R", 
-        "//dcbcpbsna01a.ENT.dfo-mpo.ca/SCD_Stad/SC_BioData_Management/2-Escapement/2015-2023_WCVI_Escapement-FSC_BioData.xlsx",
-        "via direct R query to http://pac-salmon.dfo-mpo.gc.ca/CwtDataEntry/#/AgeBatchList",
-        "For 2022, query from OtoManager online stored in: https://086gc.sharepoint.com/:x:/r/sites/PAC-SCAStockAssessmentSTAD/Shared%20Documents/WCVI%20STAD/Terminal%20CN%20Run%20Recon/2022/Communal%20data/BiodataResults/OtoManager_RecoverySpecimens_Area20-27_121-127_CN_2022_28Aug2023.xlsx?d=w398c15dd3c9b4ceb84d3083a215e9c6a&csf=1&web=1&e=NAxyjd",
-        "//dcbcpbsna01a.ENT.dfo-mpo.ca/SCD_Stad/Spec_Projects/Thermal_Mark_Project/Marks/All CN Marks from NPAFC Otolith Database to May 1, 2023.xlsx",
-        "!NOT IN YET!: http://pac-salmon.dfo-mpo.gc.ca/MRPWeb/#/Notice",  
-        "",
-        "sheet description:",
-        "WCVI Chinook escapement biodata joined to PADS scale age results, OtoManager thermal mark results, NPAFC mark file to give otolith stock ID, CWT recoveries, and PBT up to 2021 return year. Currently does NOT include any GSI results.",
-        "Subset of full database, filtered by Whatman IDs of parents contributing to returning fish. I.e., if an adult fish sampled for PBT during broodstock had a hit to a parent in the baseline, here their parents are pulled out of the overall database. This would show parents that contributed to adult recruits. These are parent fish identified through PBT only.",
-        "Summary of QC flags and # of entries belonging to that flag.",
-        "QC flag 0 tab. Only the Esc biodata w RESULTS ('EBwR') entries that correspond to NPAFC BY-hatchcode duplicates. See QC summary for details.",
-        "All duplicate BY-hatchcodes documented by the NPAFC. To inform decisions around QC Flag 0.",
-        "QC flag tabs. See QC summary report for details.",
-        "PADS Antijoin tab. See QC summary for details.",
-        "OtoManager Antijoin tab. See QC summary for details."))
+readme_tab <- data.frame(`1` = c( ),
+`2` = c( ))
 
 
 
@@ -302,6 +261,31 @@ readme_tab <- data.frame(`1` = c("date rendered:",
 
 
 #                                                                           X. EXPORT 
+
+
+
+require(openxlsx)
+list_of_datasets <- list("Name of DataSheet1" = dataframe1, "Name of Datasheet2" = dataframe2)
+write.xlsx(list_of_datasets, file = "writeXLSX2.xlsx")
+
+
+library(writexl)
+sheets <- list("sheet1Name" = sheet1, "sheet2Name" = sheet2) #assume sheet1 and sheet2 are data frames
+write_xlsx(sheets, "path/to/location")
+
+
+
+
+library(openxlsx) # loads library and doesn't require Java installed
+
+your_df_list <- c("df1", "df2", ..., "dfn")
+
+for(name in your_df_list){
+  write.xlsx(x = get(name), 
+             file = "your_spreadsheet_name.xlsx", 
+             sheetName = name)
+}
+
 
 
 # ==================== Create the Excel file ====================
